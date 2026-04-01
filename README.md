@@ -130,12 +130,23 @@ IC and RankIC are computed over rolling 10-hour (600-minute) windows for each fa
 **Methodology**:
 - Rolling period: 600 minutes (~10 trading hours)
 - Computed against each horizon (ret_5m, ret_10m, ret_20m, ret_50m)
-- Temporal embedding factors added for each horizon
 
-**Expected Findings**:
-- Tick-based factors (TDR, TACC_R) show strongest IC for short horizons (5m, 10m)
-- Volatility regime features improve signal consistency across different market states
-- Intraday time features capture session-based trading patterns
+### Top Base Factor IC Results
+
+| Factor | IC (5m) | IC_IR (5m) | IC (50m) | IC_IR (50m) | Direction |
+|--------|---------|-----------|---------|-----------|-----------|
+| **MR** (Mid-Return) | -0.0486 | -0.443 | -0.0963 | -0.631 | Strong mean-reversion |
+| **MS** (Momentum Score) | -0.0418 | -0.389 | -0.0919 | -0.599 | Strong mean-reversion |
+| **MPR** (Mid-Price Return) | -0.0403 | -0.371 | -0.0807 | -0.621 | Strong mean-reversion |
+| **TWMD** (Tick-Weighted Mid Dev) | -0.0350 | -0.336 | -0.0674 | -0.617 | Mean-reversion |
+| **RS** (Realized Spread) | +0.0101 | +0.138 | +0.0139 | +0.095 | Positive (spread signal) |
+| **QS** (Quoted Spread) | +0.0070 | +0.096 | +0.0052 | +0.035 | Positive |
+| **RER** (Realized Excess Return) | +0.0044 | +0.081 | +0.0033 | +0.099 | Positive |
+
+**Key Findings**:
+- Mean-reversion factors (MR, MS, MPR) dominate with the strongest IC_IR, signal strengthens with longer horizons (50m IC_IR > -0.60)
+- Spread factors (RS, QS) show weaker but consistently positive predictability
+- Most factors show IC_IR < |0.2| for short horizons, indicating weak but exploitable alpha
 
 ## Modeling and Backtest Design
 
@@ -198,80 +209,60 @@ Ensemble and boosting methods capturing non-linear relationships:
 
 ## Results Summary
 
-### Model Performance by Horizon
+> Baseline reference: random 3-class guess → Accuracy = 33.3%, Log Loss = log(3) = 1.099
 
-The models are evaluated across four prediction horizons. Here we report benchmark results showing effectiveness of improved methodology:
+### Model Accuracy by Horizon
 
-#### 5-Minute Prediction Horizon (ret_5m)
-**Logistic Models**:
-- Best: LR_lasso (with PCA) - Accuracy ~38%, Log Loss ~1.11
-- Lasso regularization provides feature selection benefit
+| Model | 5m Acc | 5m LogLoss | 10m Acc | 10m LogLoss | 20m Acc | 20m LogLoss | 50m Acc | 50m LogLoss |
+|-------|--------|-----------|---------|------------|---------|------------|---------|------------|
+| **Random Forest** | **0.4118** | **1.0753** | **0.4089** | **1.0787** | **0.3858** | **1.0872** | 0.3678 | **1.1025** |
+| Bagging | 0.4043 | 1.0828 | 0.4011 | 1.0906 | 0.3816 | 1.1233 | 0.3612 | 1.2244 |
+| XGBoost | 0.3937 | 1.1091 | 0.3908 | 1.1275 | 0.3752 | 1.1729 | **0.3704** | 1.2752 |
+| Gradient Boosting | 0.3891 | 1.1240 | 0.3914 | 1.1426 | 0.3730 | 1.1990 | 0.3666 | 1.3039 |
+| Naive Bayes | **0.3987** | 5.3446 | 0.3954 | 5.6139 | 0.3886 | 5.9670 | 0.3710 | 6.8420 |
+| LDA (with PCA) | 0.3908 | 1.1192 | 0.3843 | 1.1431 | 0.3733 | 1.1764 | 0.3683 | 1.2221 |
+| LR_lasso (with PCA) | 0.3907 | 1.1160 | 0.3853 | 1.1403 | 0.3729 | 1.1722 | 0.3678 | 1.2212 |
 
-**Generative Models**:
-- Best: Naive Bayes (no PCA) - Accuracy ~39%, Log Loss ~1.12
-- Simple models benefit from larger training windows
-
-**Tree-Based Models**:
-- Best: Random Forest - Accuracy ~38%, Log Loss ~1.09 ⭐ (Lowest Log Loss)
-- Ensemble approach captures non-linear patterns effectively
-
-#### 10-Minute Prediction Horizon (ret_10m)
-**Logistic Models**:
-- Best: LR_lasso (no PCA) - Accuracy ~37%
-
-**Generative Models**:
-- Best: Naive Bayes (no PCA) - Accuracy ~38%
-
-**Tree-Based Models**:
-- Best: Random Forest - Accuracy ~37%, Log Loss ~1.10 ⭐
-
-#### 20-Minute Prediction Horizon (ret_20m)
-**Logistic Models**:
-- Best: LR_lasso (no PCA) - Accuracy ~36%
-
-**Generative Models**:
-- Best: LDA (no PCA) - Accuracy ~37%
-
-**Tree-Based Models**:
-- Best: Random Forest - Accuracy ~37%, Log Loss ~1.12 ⭐
-
-#### 50-Minute Prediction Horizon (ret_50m)
-**Logistic Models**:
-- Best: LR_lasso (no PCA) - Accuracy ~36%
-
-**Generative Models**:
-- Best: LDA (no PCA) - Accuracy ~38%
-
-**Tree-Based Models**:
-- Best: Bagging - Accuracy ~36%, Log Loss varies
+**Overall out-of-sample accuracy (Random Forest, 5m, rolling validation): 40.51%** vs. 33.3% random baseline.
 
 ### Key Findings
 
-1. **Model Family Performance**:
-   - Tree-based models consistently achieve lowest Log Loss across horizons
-   - Random Forest shows best balance of accuracy and calibration
-   - Generative models competitive with logistic on standard metrics
+1. **Model Family**: Tree-based > Generative ≈ Logistic on accuracy; Random Forest has the best log loss across all horizons. Naive Bayes achieves high accuracy but is poorly calibrated (log loss >> 1.1).
 
-2. **Horizon Effects**:
-   - Accuracy decreases with longer horizons (5m > 10m > 20m > 50m)
-   - Signal quality degrades as prediction window extends
-   - 5m horizon shows strongest predictability (signal-to-noise ratio highest)
+2. **Horizon**: Accuracy decreases monotonically with longer horizons (5m: ~41% → 50m: ~37%). Mean-reversion signals strengthen at 50m (MR IC_IR = -0.631) but overall predictability still degrades.
 
-3. **PCA Impact**:
-   - PCA helps logistic regression (dimensionality reduction stabilizes)
-   - Tree models unaffected (handle high dimensions natively)
-   - Generative models generally prefer full feature space
+3. **PCA**: Helps logistic/generative models; not applied to trees (handle high dimensions natively).
 
-4. **Factor Contribution**:
-   - Expanded feature set (162 vs 20) benefits all models
-   - Lag terms capture short-term factor persistence
-   - Regime features improve robustness across market conditions
+### Strategy Performance (Random Forest on 5m, XAG/USD)
 
-### Baseline Comparison (Recommended for Future)
-Future work should include:
-- **Naive baseline**: Always predict "up" class (~33% accuracy if balanced)
-- **Persistence baseline**: Predict previous minute's direction
-- **Performance threshold**: Only deploy models that substantially beat baselines
+Two signal construction approaches were evaluated using `vectorbt`:
+
+| Metric | Probability-based | Prediction-based |
+|--------|------------------|-----------------|
+| **Period** | 2025-01-23 ~ 2026-01-30 (248 days) | 2025-01-23 ~ 2026-01-30 (248 days) |
+| **Total Return** | **43.46%** | **149.15%** |
+| **Benchmark Return (Buy & Hold)** | 220.32% | 220.32% |
+| **Max Drawdown** | 13.22% | 19.01% |
+| **Max Drawdown Duration** | 53 days | 35 days |
+| **Total Trades** | 1,251 | 17,540 |
+| **Win Rate** | 57.60% | 54.21% |
+| **Sharpe Ratio** | 2.12 | **3.84** |
+| **Calmar Ratio** | 5.29 | **14.85** |
+| **Profit Factor** | 1.20 | 1.10 |
+| **Avg Winning Trade** | +0.28% | +0.11% |
+| **Avg Losing Trade** | -0.31% | -0.12% |
+| **Fees** | 0 | 0 |
+
+- **Probability-based**: Enter long when `prob_positive > 0.5` or `prob_negative > 0.5`; fewer, larger trades; better per-trade quality.
+- **Prediction-based**: Enter when `pred == 2 (up)` or previous period `pred == 0 (down)`; high-frequency mean-reversion style; very high Sharpe but fee-sensitive.
+- Neither strategy beats buy-and-hold over the period, primarily due to XAG's exceptional 220% bull run in 2025.
+
+### Baseline Comparison
+| Benchmark | Value |
+|-----------|-------|
+| Random 3-class accuracy | 33.33% |
+| Log Loss (uniform random) | 1.099 |
+| Buy & Hold Return | 220.32% |
 
 ## Improvements Over Initial Methodology
 
@@ -309,16 +300,6 @@ Future work should include:
 - Rolling backtest implemented via `rolling_backtest()` with configurable window sizes and metrics
 - Model definitions separate by family for clarity and maintainability
 - Results printed by horizon and model family for easy comparison
-| 50m | 1.2239 (LR_lasso + PCA) | 1.2198 (LDA + PCA) | 1.1485 (Random Forest) |
-
-### Baseline reference
-For uniform random guess in 3-class classification:
-- Accuracy baseline: `1/3 = 0.3333`
-- Log loss baseline: `log(3) = 1.0986`
-
-Interpretation:
-- Accuracy values are above random baseline across most settings.
-- Probability calibration (log loss) is more mixed; tree models, especially Random Forest, are currently strongest in this notebook snapshot.
 
 ## How to Run
 1. Open `Quantitative strategy.ipynb`.
@@ -376,9 +357,9 @@ RandomForestClassifier(
 ```
 
 Backtest settings:
-- `training_size = 500`
-- `validation_size = 100`
-- `step_size = 500`
+- `training_size = 1800`
+- `validation_size = 200`
+- `step_size = 1800`
 - `embargo = horizon` (5/10/20/50)
 - `use_pca = False` for tree models
 - Label encoding for XGBoost compatibility: `0=down, 1=noise, 2=up`
