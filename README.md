@@ -12,7 +12,7 @@ This project studies short-horizon return predictability for XAG/USD using high-
 ## Workflow
 The research follows a structured methodology:
 1. **Data preparation**: Cleaning and preprocessing minute-level OHLC and tick data
-2. **Factor engineering**: Construction of 20 HFT-inspired microstructure factors (expanded to 162 features)
+2. **Factor engineering**: Construction of 22 HFT-inspired microstructure factors (expanded to 162 features)
 3. **Factor testing**: IC (Information Coefficient) and RankIC analysis across prediction horizons
 4. **Rolling backtesting**: Walk-forward validation with proper embargo handling to prevent leakage
 5. **Model comparison**: Systematic evaluation across Logistic, Generative, and Tree-based model families
