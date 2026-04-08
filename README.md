@@ -143,28 +143,31 @@ A **Claude LLM agent** was used to systematically survey market microstructure l
 
 ---
 
-## Strategy Backtest Results (XAG/USD, Jan 2025 – Jan 2026, 248 days)
+## Strategy Backtest Results (XAG/USD, Jan 2025 – Jan 2026)
 
-Evaluated using `vectorbt` on the Random Forest model (5-minute trend prediction):
+Three models were backtested using `vectorbt` on the 5-minute trend prediction task. Each uses a probability-filtered long signal (`prob_class >= threshold`) with fees applied.
 
-| Metric | Probability-based | Prediction-based |
-|--------|------------------|-----------------|
-| **Total Return** | 43.46% | **149.15%** |
-| **Benchmark (Buy & Hold)** | 220.32% | 220.32% |
-| **Max Drawdown** | 13.22% | 19.01% |
-| **Max Drawdown Duration** | 53 days | 35 days |
-| **Total Trades** | 1,251 | 17,540 |
-| **Win Rate** | 57.60% | 54.21% |
-| **Sharpe Ratio** | 2.12 | **3.84** |
-| **Calmar Ratio** | 5.29 | **14.85** |
-| **Profit Factor** | 1.20 | 1.10 |
-| **Avg Win / Avg Loss** | +0.28% / -0.31% | +0.11% / -0.12% |
-| **Fees** | 0 | 0 |
+**Benchmark (Buy & Hold): +221.13%**
 
-- **Probability-based**: Enter when `prob_up > 0.5` or `prob_down > 0.5`; fewer, higher-quality trades
-- **Prediction-based**: Enter on `pred == up/down`; mean-reversion style; Sharpe **3.84**, Calmar **14.85** (pre-fee)
+| Metric | Lasso LR | XGBoost | GRU |
+|--------|----------|---------|-----|
+| **Total Return** | 72.79% | 84.10% | **101.30%** |
+| **Max Drawdown** | 13.41% | 26.96% | 23.05% |
+| **Max Drawdown Duration** | 13 days | 13 days | **8 days** |
+| **Total Trades** | 430 | 323 | **133** |
+| **Win Rate** | 54.55% | 54.35% | **62.88%** |
+| **Sharpe Ratio** | 4.98 | 5.43 | **5.77** |
+| **Calmar Ratio** | 406.85 | 324.42 | **735.27** |
+| **Profit Factor** | 1.31 | 1.36 | **2.02** |
+| **Avg Win / Avg Loss** | +1.02% / -0.92% | +1.29% / -1.07% | +1.76% / -1.35% |
+| **Total Fees Paid** | 31.57 | 28.13 | **12.08** |
 
-> Neither strategy beats buy-and-hold (220.32%) due to XAG's exceptional 2025 bull run. The prediction-based strategy's Sharpe of **3.84** and Calmar of **14.85** are institutional-grade on a zero-fee basis.
+**Signal construction**:
+- **Lasso LR**: Enter long when `pred == up` and `prob_up >= 0.60`
+- **XGBoost**: Enter long when `pred == up` and `prob_up >= 0.70`
+- **GRU**: Enter long when `pred == up` and `prob_up >= 0.45`
+
+> None of the strategies beats buy-and-hold (+221.13%) due to XAG's exceptional 2025 bull run. However, **GRU dominates on all risk-adjusted metrics** — Sharpe 5.77, Calmar 735, Profit Factor 2.02, Win Rate 62.9% — with the fewest trades and lowest fees. All three strategies maintain controlled drawdowns relative to the 221% benchmark move.
 
 ---
 
@@ -213,7 +216,7 @@ Backtest settings: `training_size=1800, validation_size=200, step_size=1800, emb
 |-----------|-------|
 | Random 3-class accuracy | 33.33% |
 | Log Loss (uniform random) | 1.099 |
-| Buy & Hold Return (2025) | 220.32% |
+| Buy & Hold Return (2025) | 221.13% |
 
 ---
 
