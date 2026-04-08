@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(python3)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c ':*)",
+      "Bash(python -c \"import json; nb=json.load\\(open\\('Quantitative strategy.ipynb'\\)\\); [print\\(f'Cell {i}: {c[\\\\\"cell_type\\\\\"]} | {str\\(c[\\\\\"source\\\\\"]\\)[:120]}'\\) for i,c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(python insert_rnn.py)",
+      "Bash(python \"C:/Users/25717/.claude/insert_rnn.py\")"
     ]
   }
 }
