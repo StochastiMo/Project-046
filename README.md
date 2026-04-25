@@ -99,75 +99,73 @@ A **Claude LLM agent** was used to systematically survey market microstructure l
 
 ## Results Summary
 
-> **Random baseline**: 33.33% accuracy, Log Loss = 1.099 (uniform 3-class)
+> **Random baseline**: 33.33% accuracy, Log Loss = 1.099, Brier Score = 0.667 (uniform 3-class)
 
 ### Full Model Comparison — 5-Minute Horizon
 
-| Model | Accuracy | vs. Baseline | Log Loss |
-|-------|----------|-------------|----------|
-| **GRU** | **50.98%** | **+17.65 pp** | **0.9914** |
-| **Bagging** | **50.98%** | **+17.65 pp** | 0.9967 |
-| LR_lasso (with PCA) | 50.04% | +16.71 pp | 1.0330 |
-| LDA (with PCA) | 49.98% | +16.65 pp | 1.0330 |
-| LR_elasticnet (with PCA) | 49.98% | +16.65 pp | 1.0344 |
-| LR_plain (with PCA) | 49.95% | +16.62 pp | 1.0359 |
-| XGBoost | 49.49% | +16.16 pp | 1.0694 |
-| LightGBM | 48.86% | +15.53 pp | 1.1106 |
-| LDA (without PCA) | 46.81% | +13.48 pp | 1.1886 |
-| LR_lasso (without PCA) | 47.09% | +13.76 pp | 1.1477 |
-| Random Forest | 45.67% | +12.34 pp | 1.0475 |
-| KNN (with PCA) | 44.89% | +11.56 pp | 6.3157 |
-| Naive Bayes (with PCA) | 43.94% | +10.61 pp | 1.5031 |
+| Model | Accuracy | vs. Baseline | Log Loss | Brier Score | AUC-ROC |
+|-------|----------|-------------|----------|-------------|---------|
+| **Ensemble (Lasso+LDA+Bagging)** | **51.19%** | **+17.86 pp** | — | — | — |
+| **Bagging** | 50.92% | +17.59 pp | 0.9947 | **0.5924** | 0.5508 |
+| **GRU** | 50.07% | +16.74 pp | 1.0024 | 0.5981 | **0.5633** |
+| LR_lasso (with PCA) | 49.61% | +16.28 pp | 1.0358 | 0.6143 | 0.5381 |
+| LDA (with PCA) | 49.63% | +16.30 pp | 1.0359 | 0.6147 | 0.5385 |
+| XGBoost | 49.38% | +16.05 pp | 1.0701 | 0.6300 | 0.5416 |
+| LightGBM | 49.13% | +15.80 pp | 1.1089 | 0.6450 | 0.5385 |
+| Random Forest | 45.62% | +12.29 pp | 1.0480 | 0.6308 | 0.5507 |
+| KNN (with PCA) | 44.89% | +11.56 pp | 6.3157 | 0.7476 | 0.5092 |
+| Naive Bayes (with PCA) | 43.94% | +10.61 pp | 1.5031 | 0.7543 | 0.5292 |
 
-**Best accuracy**: GRU and Bagging both at **50.98%** — a **+17.65 percentage point** lift over the 33.33% random baseline.
-**Best log loss**: GRU at **0.9914** — the only model to beat the random baseline (1.099) in both accuracy *and* probability calibration.
+**Best accuracy**: Ensemble at **51.19%** (+17.86 pp over baseline).
+**Best Brier Score**: Bagging at **0.5924** — best probability calibration among all models.
+**Best AUC-ROC**: GRU at **0.5633** — best class discrimination ability.
+**Best log loss**: GRU at **1.0024** — beats random baseline (1.099).
 
 ### Model Accuracy by Horizon
 
-| Model | 5m Acc | 5m LogLoss | 10m Acc | 10m LogLoss | 20m Acc | 20m LogLoss | 50m Acc | 50m LogLoss |
-|-------|--------|-----------|---------|------------|---------|------------|---------|------------|
-| **GRU** | **0.5098** | **0.9914** | — | — | — | — | — | — |
-| **Bagging** | **0.5098** | 0.9967 | **0.4998** | **1.0131** | 0.4787 | 1.0617 | 0.4306 | 1.2303 |
-| LR_lasso (PCA) | 0.5004 | 1.0330 | 0.4883 | 1.0643 | **0.4789** | **1.1046** | **0.4396** | **1.2012** |
-| LDA (PCA) | 0.4998 | 1.0330 | 0.4888 | 1.0640 | 0.4796 | 1.1058 | — | — |
-| XGBoost | 0.4949 | 1.0694 | 0.4798 | 1.1184 | 0.4659 | 1.2030 | 0.4277 | 1.4035 |
-| LightGBM | 0.4886 | 1.1106 | 0.4773 | 1.1741 | 0.4612 | 1.2899 | 0.4284 | 1.5499 |
-| Random Forest | 0.4567 | 1.0475 | 0.4477 | 1.0513 | 0.4292 | 1.0626 | 0.3984 | 1.0889 |
+| Model | 5m Acc | 5m Brier | 5m AUC | 10m Acc | 10m Brier | 20m Acc | 20m Brier | 50m Acc | 50m Brier |
+|-------|--------|---------|--------|---------|----------|---------|----------|---------|----------|
+| **GRU** | 0.5007 | 0.5981 | **0.5633** | — | — | — | — | — | — |
+| **Bagging** | **0.5092** | **0.5924** | 0.5508 | **0.4998** | **0.6038** | 0.4787 | 0.6293 | 0.4306 | 0.7009 |
+| LR_lasso (PCA) | 0.4961 | 0.6143 | 0.5381 | 0.4883 | 0.6299 | **0.4789** | 0.6469 | **0.4396** | 0.6964 |
+| LDA (PCA) | 0.4963 | 0.6147 | 0.5385 | 0.4888 | 0.6298 | 0.4796 | 0.6475 | — | 0.6951 |
+| XGBoost | 0.4938 | 0.6300 | 0.5416 | 0.4798 | 0.6533 | 0.4659 | 0.6911 | 0.4277 | 0.7771 |
+| LightGBM | 0.4913 | 0.6450 | 0.5385 | 0.4773 | 0.6737 | 0.4612 | 0.7166 | 0.4284 | 0.8088 |
+| Random Forest | 0.4562 | 0.6308 | 0.5507 | 0.4477 | 0.6335 | 0.4292 | **0.6411** | 0.3984 | **0.6597** |
 
 **Key Findings**:
-1. **GRU and Bagging dominate on accuracy** at 5m (50.98%), far exceeding the 33.3% baseline
-2. **LR with PCA is surprisingly competitive** (~50%), matching complex models with full interpretability
-3. **Random Forest ranks mid-table** — good log loss across horizons but not the accuracy leader
-4. Accuracy degrades with horizon (5m ~51% → 50m ~44%), consistent with weaker signal at longer lags
-5. KNN and raw Naive Bayes suffer from poor calibration (log loss >> 1.1) despite reasonable accuracy
+1. **Ensemble (Lasso+LDA+Bagging)** achieves highest 5m accuracy (51.19%) via probability averaging
+2. **Bagging** leads on Brier Score (best calibration) and accuracy among single models at 5m
+3. **GRU** leads on AUC-ROC (0.5633) — strongest class discrimination despite fewer trades
+4. **LR with PCA is competitive** (~49.6%), matching complex models with full interpretability
+5. Accuracy degrades with horizon (5m ~51% → 50m ~44%), consistent with weaker signal at longer lags
+6. **Random Forest** shows the most stable Brier Score across horizons (0.631→0.660)
 
 ---
 
 ## Strategy Backtest Results (XAG/USD, Jan 2025 – Jan 2026)
 
-Three models were backtested using `vectorbt` on the 5-minute trend prediction task. Each uses a probability-filtered long signal (`prob_class >= threshold`) with fees applied.
+Five models were backtested using `vectorbt` on the 5-minute trend prediction task. Each uses a probability-filtered long/short signal with fees (0.03%) and slippage (0.01%) applied.
 
 **Benchmark (Buy & Hold): +221.13%**
 
-| Metric | Lasso LR | XGBoost | GRU |
-|--------|----------|---------|-----|
-| **Total Return** | 72.79% | 84.10% | **101.30%** |
-| **Max Drawdown** | 13.41% | 26.96% | 23.05% |
-| **Max Drawdown Duration** | 13 days | 13 days | **8 days** |
-| **Total Trades** | 430 | 323 | **133** |
-| **Win Rate** | 54.55% | 54.35% | **62.88%** |
-| **Sharpe Ratio** | 4.98 | 5.43 | **5.77** |
-| **Calmar Ratio** | 406.85 | 324.42 | **735.27** |
-| **Profit Factor** | 1.31 | 1.36 | **2.02** |
-| **Avg Win / Avg Loss** | +1.02% / -0.92% | +1.29% / -1.07% | +1.76% / -1.35% |
-| **Total Fees Paid** | 31.57 | 28.13 | **12.08** |
+| Metric | Lasso LR | LDA | Bagging | GRU | Ensemble |
+|--------|----------|-----|---------|-----|----------|
+| **Total Return** | 84.21% | 60.90% | **145.83%** | 33.56% | 86.40% |
+| **Max Drawdown** | 15.27% | 21.43% | 24.89% | 23.31% | 21.12% |
+| **Win Rate** | 53.56% | 52.42% | **55.02%** | 55.58% | 58.78% |
+| **Sharpe Ratio** | 5.49 | 4.34 | **7.54** | 2.84 | 5.27 |
+| **Calmar Ratio** | 575.34 | 148.82 | **2968.86** | 31.64 | 454.09 |
+| **Profit Factor** | 1.51 | 1.34 | **1.66** | 1.31 | 1.53 |
+| **Total Trades** | 240 | 249 | 210 | **458** | 149 |
 
 **Signal construction**:
-- **Lasso LR**: Enter long when `pred == up` and `prob_up >= 0.60`
-- **XGBoost**: Enter long when `pred == up` and `prob_up >= 0.70`
-- **GRU**: Enter long when `pred == up` and `prob_up >= 0.45`
+- **Lasso LR / LDA**: Enter when `pred == up` and `prob_up >= 0.65`; exit when `pred == down` and `prob_down >= 0.65`
+- **Bagging**: Enter when `pred == up` and `prob_up >= 0.50`; exit when `pred == down` and `prob_down >= 0.50`
+- **GRU**: Enter when `pred == up` and `prob_up >= 0.40`; exit when `pred == down` and `prob_down >= 0.40`
+- **Ensemble**: Average probabilities of Lasso + LDA + Bagging; threshold `>= 0.50`
 
-> None of the strategies beats buy-and-hold (+221.13%) due to XAG's exceptional 2025 bull run. However, **GRU dominates on all risk-adjusted metrics** — Sharpe 5.77, Calmar 735, Profit Factor 2.02, Win Rate 62.9% — with the fewest trades and lowest fees. All three strategies maintain controlled drawdowns relative to the 221% benchmark move.
+> None of the strategies beats buy-and-hold (+221.13%) due to XAG's exceptional 2025 bull run. **Bagging dominates on all risk-adjusted metrics** — Sharpe 7.54, Calmar 2969, highest total return (145.83%). **Ensemble achieves the best win rate (58.78%)** with the fewest trades (149), suggesting higher signal quality. GRU's lower threshold (0.40) generates the most trades (458) but the weakest returns, indicating probability miscalibration at that level.
 
 ---
 
@@ -196,7 +194,7 @@ Gated Recurrent Unit with rolling sequence inputs. **Highest accuracy (50.98%) a
 | Best interpretability | **LR_lasso + PCA** | 50.04% | 1.0330 | Linear, transparent |
 | Most stable across horizons | **Random Forest** | 45.67% | 1.0475 | Consistent log loss |
 
-**Recommended default**: Bagging — best accuracy, fast training, well-calibrated log loss
+**Recommended default**: Bagging — best risk-adjusted backtest performance (Sharpe 7.54, Calmar 2969), best Brier Score (0.5924), fast training
 
 ```python
 BaggingClassifier(
@@ -235,7 +233,8 @@ Backtest settings: `training_size=1800, validation_size=200, step_size=1800, emb
 3. **Transaction Cost Modeling**: Evaluate prediction-based strategy post-fee
 4. **Cross-Asset Validation**: Test factor generalization on CRYPTO, CURRENCY, EQUITY
 5. **GRU at Longer Horizons**: Currently only evaluated at 5m
-6. **Ensemble**: Combine Bagging + GRU via meta-learning
+6. ~~**Ensemble**: Combine Bagging + GRU via meta-learning~~ → **Implemented**: Equal-weight probability averaging (Lasso + LDA + Bagging); achieves highest accuracy (51.19%) and best win rate (58.78%) in backtest
+7. **GRU Threshold Tuning**: GRU at threshold 0.40 overtrades (458 trades); optimize threshold to improve risk-adjusted returns
 
 ---
 
