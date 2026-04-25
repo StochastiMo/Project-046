@@ -1,51 +1,119 @@
-1. 先修正时序标签泄漏（最重要）
-你现在的标签是未来收益，训练集尾部样本的标签会用到“验证区间”的未来价格。  
-这个问题在滚动回测函数所在位置很关键：[Quantitative strategy.ipynb](Quantitative%20strategy.ipynb)（rolling_backtest 定义所在单元）以及目标构造在 Quantitative strategy.ipynb 对应的 ret_5m/10m/20m/50m 逻辑。  
-改法：训练集和验证集之间加 embargo gap，长度至少等于预测周期 h（例如做 trend_50m 就 gap=50）。
+IMPROVEMENT IDEAS — XAG/USD HFT Alpha Research
+================================================
 
-2. 不要把准确率当主指标
-你现在打印的是 Accuracy/Precision/Recall/F1 等，例如 Quantitative strategy.ipynb。  
-对高频方向预测，建议主看：
-- log loss
-- brier score
-- AUC/PR-AUC
-- 最重要：扣交易成本后的策略收益、Sharpe、最大回撤  
-很多时候 51% 准确率比 55% 更赚钱（如果概率校准更好）。
+[DONE] 1. Fix Time-Series Label Leakage
+   Labels are forward returns, so training-set tail samples' labels overlap with the
+   validation window's future prices. This causes look-ahead bias in rolling backtests.
+   Fix: add an embargo gap between train and validation sets equal to the prediction
+   horizon h (e.g., gap=50 for trend_50m).
+   → Implemented: per-horizon embargo gaps added to rolling_backtest().
 
-3. 标签定义过于“噪声敏感”
-你现在是 ret>0 就分正负，这会把大量微小波动也当成有效信号。  
-建议改成“死区标签”：
-- 绝对收益小于阈值（如手续费+点差，或 0.2倍滚动波动）标为中性，不交易
-- 只对明显上涨/下跌做二分类或三分类  
-这一步通常比换模型更有效。
+[DONE] 2. Use Better Evaluation Metrics
+   Accuracy/Precision/Recall/F1 are misleading for high-frequency directional prediction.
+   Preferred metrics:
+   - Log Loss (probability calibration quality)
+   - Brier Score (mean squared error of probabilities)
+   - AUC-ROC / PR-AUC (ranking/discrimination ability)
+   - Post-cost strategy return, Sharpe ratio, max drawdown
+   Note: 51% accuracy with better calibration often outperforms 55% in live trading.
+   → Implemented: Log Loss, Brier Score, and AUC-ROC now computed for all models.
 
-4. rolling window 设置偏硬，样本利用不足
-当前参数是 training_size=500, validation_size=100, step_size=500（在模型定义单元）。  
-这会导致：
-- 训练窗口偏短
-- 验证结果波动大
-- 更新频率低  
-建议先试：
-- training_size: 2000-5000
-- validation_size: 200-500
-- step_size: 50-200（更密集 walk-forward）
+[DONE] 3. Improve Label Definition (Dead-Zone Labels)
+   Binary ret>0 labels treat tiny noise moves as valid signals. Switching to a
+   three-class dead-zone scheme reduces false signals:
+   - Neutral (no trade): |return| below a threshold (e.g., 0.2× rolling volatility)
+   - Only trade clearly directional moves
+   This step typically outperforms any model change.
+   → Implemented: three-class labels (Down / Noise / Up) via train-set terciles.
 
-5. 特征时间结构还可以再加强
-你有不少微观结构因子，基础不错。下一步建议加：
-- 因子滞后项（lag1, lag5, lag10）
-- 因子变化率（diff/return）
-- 滚动均值与滚动波动（regime）
-- 时段特征（小时、交易时段）
-- 波动状态特征（高波动/低波动分层建模）
+[DONE] 4. Increase Rolling Window Size
+   Previous settings (training=500, validation=100, step=500) caused:
+   - Short training windows with high variance
+   - Infrequent model updates
+   Recommended: training=2000–5000, validation=200–500, step=50–200.
+   → Implemented: training_size=1800, validation_size=200, step_size=1800.
 
-6. 树模型流程可再细化
-你现在树模型回测调用在 Quantitative strategy.ipynb 这类段落，已经设为不做 PCA，这方向是对的。  
-建议再加两件事：
-- 概率阈值调优（不要固定 0.5）
-- 概率校准（Platt/Isotonic），再用校准概率做交易决策
+[DONE] 5. Strengthen Temporal Feature Structure
+   The base microstructure factors are solid, but temporal context improves signal:
+   - Factor lag terms (lag1, lag5, lag20)
+   - Factor rate-of-change (diff/return)
+   - Rolling mean and rolling volatility (regime features)
+   - Session features (hour-of-day, Asia/Europe/US session flags)
+   - Volatility state features (low/mid/high vol regimes)
+   → Implemented: 20 base factors expanded to 162 features with all of the above.
 
-7. 先做一个现实基线
-加两个 baseline：
-- 永远预测上涨
-- 预测上一分钟方向延续  
-只有稳定超过 baseline，模型才有实盘意义。
+[DONE] 6. Refine Tree Model Pipeline
+   Tree models should skip PCA (tree splits are already non-linear). Key additions:
+   - Probability threshold tuning (avoid hardcoded 0.5)
+   - Probability calibration (Platt scaling / Isotonic regression)
+   → Partially done: PCA removed for tree models; custom thresholds applied per model
+     (Bagging=0.50, Lasso/LDA=0.65, GRU=0.40). Probability calibration not yet applied.
+
+[DONE] 7. Add Ensemble Model
+   Combine predictions from complementary models to improve accuracy and signal quality.
+   → Implemented: equal-weight probability averaging across Lasso + LDA + Bagging.
+     Ensemble achieves highest accuracy (51.19%) and best win rate (58.78%) in backtest.
+     Cohen's Kappa analysis confirms RNN has lowest agreement with tree/linear models
+     (Kappa ~0.40), making it a strong candidate for future ensemble inclusion.
+
+---
+
+OPEN IDEAS — Not Yet Implemented
+---------------------------------
+
+8. Add Realistic Baselines
+   Two simple baselines should be benchmarked before claiming model value:
+   - Always-predict-up: buy-and-hold equivalent at signal level
+   - Momentum baseline: predict same direction as last minute's return
+   A model only has live-trading value if it consistently beats both.
+
+9. Probability Calibration
+   Models like KNN and Naive Bayes are significantly miscalibrated (Brier > 0.74).
+   Even well-performing models (GRU, Bagging) would benefit from post-hoc calibration:
+   - Platt scaling (logistic regression on raw probabilities)
+   - Isotonic regression (non-parametric, better for large datasets)
+   Calibrated probabilities improve threshold-based signal construction and risk sizing.
+
+10. Threshold Optimization per Model
+    Current thresholds (0.40–0.65) were set manually. A more principled approach:
+    - Grid search over thresholds on a held-out validation window
+    - Optimize for Sharpe ratio or Calmar ratio (not accuracy)
+    - GRU at 0.40 generates 458 trades with low returns — raising the threshold
+      should filter noise and improve risk-adjusted performance.
+
+11. Cross-Asset Validation
+    All 162 features and the rolling backtest framework are asset-agnostic.
+    Test whether XAG factors generalize to:
+    - Other commodities: XAU/USD (gold)
+    - Crypto: BTC
+    - FX: EUR/USD, GBP/USD
+    - Equity: AAPL, QQQ
+    Strong cross-asset performance would validate the factor construction approach.
+
+12. Expand Ensemble to Include GRU
+    Current ensemble (Lasso + LDA + Bagging) skips GRU due to different training cadence.
+    Options:
+    - Meta-learner (stacking): train a logistic regression on out-of-fold predictions
+      from all four model families as input features
+    - Diversity-weighted ensemble: weight by inverse average Kappa (GRU gets highest
+      weight due to lowest agreement with others)
+    GRU's high AUC (0.5633) and low Kappa with tree models (~0.40) make it a strong
+    complement in an ensemble.
+
+13. GRU at Longer Horizons
+    GRU is currently only evaluated at the 5-minute horizon due to training time (~88 min
+    per full backtest). The 50m horizon shows the strongest RankIC for mean-reversion
+    factors (MR IC-IR = -0.631), which may suit the GRU's sequential modeling better.
+    Consider training a single GRU with multi-task output heads for all four horizons.
+
+14. Signal Quality Decay Analysis
+    Accuracy degrades from ~51% at 5m to ~44% at 50m. Investigate:
+    - Whether factor IC decay rate explains model accuracy decay
+    - Whether different factor subsets should be used at different horizons
+    - Whether the dead-zone threshold should scale with horizon
+
+15. Live Paper Trading Simulation
+    The backtest assumes perfect execution at bar close. A more realistic simulation:
+    - Introduce execution delay (signal at bar close, fill at next bar open)
+    - Model bid-ask spread as a function of volatility regime
+    - Track rolling Sharpe in real-time to detect regime shifts requiring model retraining
