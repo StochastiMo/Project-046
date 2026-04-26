@@ -7,7 +7,17 @@
       "Bash(python3 -c ':*)",
       "Bash(python -c \"import json; nb=json.load\\(open\\('Quantitative strategy.ipynb'\\)\\); [print\\(f'Cell {i}: {c[\\\\\"cell_type\\\\\"]} | {str\\(c[\\\\\"source\\\\\"]\\)[:120]}'\\) for i,c in enumerate\\(nb['cells']\\)]\")",
       "Bash(python insert_rnn.py)",
-      "Bash(python \"C:/Users/25717/.claude/insert_rnn.py\")"
+      "Bash(python \"C:/Users/25717/.claude/insert_rnn.py\")",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"from pptx import Presentation; print\\('ok'\\)\")",
+      "Bash(where python *)",
+      "Bash(C:\\\\Users\\\\25717\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe -c \"from pptx import Presentation; print\\('ok'\\)\")",
+      "Bash(D:/miniconda3/python.exe -c \"from pptx import Presentation; print\\('ok'\\)\")",
+      "Bash(D:/miniconda3/python.exe -m pip install python-pptx -q)",
+      "Bash(D:/miniconda3/python.exe -c ' *)",
+      "Bash(awk '/pf_xag_ensemble.stats/,/dtype: object/' \"Quantitative strategy.ipynb\")",
+      "Bash(D:/miniconda3/python.exe make_ppt.py)"
     ]
   }
 }
